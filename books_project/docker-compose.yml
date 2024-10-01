@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    environment:
+      - ZOO_LOG_DIR=/var/log/zookeeper
+      - ZOO_CLIENT_PORT=2181
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: bitnami/kafka:latest
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_LOG_DIRS=/kafka-logs
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT
+    ports:
+      - "9092:9092"
+    volumes:
+      - /c/kafka-logs:/kafka-logs
+    depends_on:
+      - zookeeper
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - kafka
+
+  grpc:
+    build:
+      context: ./grpc_service
+      dockerfile: Dockerfile
+    ports:
+      - "50051:50051"
+    depends_on:
+      - kafka
